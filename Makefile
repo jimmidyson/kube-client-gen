@@ -16,23 +16,18 @@
 
 SHELL := /bin/bash
 GOPATH := $(shell pwd)/_gopath
-ORG := github.com/fabric8io
-REPOPATH ?= $(ORG)/kubernetes-model
-PACKAGES ?= $(shell go list ./... | grep -v /vendor/)
+ORG := github.com/jimmidyson
+REPOPATH ?= $(ORG)/kube-client-gen
+PACKAGES ?= $(shell glide novendor)
 
 .PHONY: build
-build: test generate
-	mvn clean install
+build: build/kube-client-gen
 
-.PHONY: generate
-generate: schema
+build/kube-client-gen: gopath $(shell find -name *.go)
+	cd $(GOPATH)/src/$(REPOPATH) && CGO_ENABLED=0 go build -o build/generate -ldflags="-s -w -extldflags '-static'" .
 
-.PHONY: schema
-schema: .tmp/generate
-	.tmp/generate -f
-
-.tmp/generate: gopath $(shell find -name *.go)
-	cd $(GOPATH)/src/$(REPOPATH) && CGO_ENABLED=0 go build -o .tmp/generate -ldflags="-s -w -extldflags '-static'" ./cmd/generate
+.PHONY: all
+all: test build build-plugins
 
 .PHONY: test
 test: gopath
@@ -49,5 +44,4 @@ $(GOPATH)/src/$(ORG):
 
 .PHONY: clean
 clean:
-	rm -rf $(GOPATH) .tmp
-	mvn clean
+	rm -rf $(GOPATH) build

@@ -1,38 +1,13 @@
-package main
+package generate
 
 import (
 	"os"
 
 	"github.com/inconshreveable/log15"
-	flag "github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 
-	_ "github.com/openshift/origin/pkg/authorization/api/v1"
-	_ "github.com/openshift/origin/pkg/build/api/v1"
-	_ "github.com/openshift/origin/pkg/deploy/api/v1"
-	_ "github.com/openshift/origin/pkg/image/api/v1"
-	_ "github.com/openshift/origin/pkg/oauth/api/v1"
-	_ "github.com/openshift/origin/pkg/project/api/v1"
-	_ "github.com/openshift/origin/pkg/quota/api/v1"
-	_ "github.com/openshift/origin/pkg/route/api/v1"
-	_ "github.com/openshift/origin/pkg/sdn/api/v1"
-	_ "github.com/openshift/origin/pkg/security/api/v1"
-	_ "github.com/openshift/origin/pkg/template/api/v1"
-	_ "github.com/openshift/origin/pkg/user/api/v1"
-	_ "k8s.io/kubernetes/pkg/api/resource"
-	_ "k8s.io/kubernetes/pkg/api/unversioned"
-	_ "k8s.io/kubernetes/pkg/api/v1"
-	_ "k8s.io/kubernetes/pkg/apis/apps/v1alpha1"
-	_ "k8s.io/kubernetes/pkg/apis/authentication/v1beta1"
-	_ "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
-	_ "k8s.io/kubernetes/pkg/apis/batch/v1"
-	_ "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	_ "k8s.io/kubernetes/pkg/apis/policy/v1alpha1"
-	_ "k8s.io/kubernetes/pkg/apis/rbac/v1alpha1"
-
-	"github.com/fabric8io/kubernetes-model/pkg/generator"
-	"github.com/fabric8io/kubernetes-model/pkg/loader"
-	"github.com/fabric8io/kubernetes-model/pkg/log"
+	"github.com/jimmidyson/kube-client-gen/pkg/loader"
+	"github.com/jimmidyson/kube-client-gen/pkg/log"
 )
 
 var (
@@ -65,71 +40,45 @@ var (
 		"github.com/openshift/origin/pkg/user/api/v1",
 	}
 
+	RootCmd = &cobra.Command{
+		Use:   "kube-client-gen",
+		Short: "Kubernetes Client Generator",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			logger := log.Log
+
+			logger.SetHandler(log15.CallerFileHandler(log15.StderrHandler))
+
+			logLvl := defaultLogLevel
+			if *verbose {
+				logLvl = log15.LvlDebug
+			}
+			logger.SetHandler(log15.LvlFilterHandler(logLvl, log.Log.GetHandler()))
+
+			ldr := loader.New(*packages, logger)
+			pkgs, err := ldr.Load()
+			if err != nil {
+				logger.Error("failed to parse packages", "error", err)
+				os.Exit(1)
+			}
+			parsedPackages = pkgs
+		},
+	}
+
+	packages        *[]string
+	verbose         *bool
+	outputDirectory *string
+	force           *bool
+
 	defaultLogLevel = log15.LvlInfo
 
-	defaultOutputDirectory = "kubernetes-model/src/main/generated"
-
-	defaultGenerator = "immutables"
-
-	defaultJavaPackage = "io.fabric8"
-
-	packages = flag.StringSliceP("package", "p", defaultAPIPackages, "packages to generate JSON schema for")
-
-	verbose = flag.BoolP("verbose", "v", false, "verbose output")
-
-	outputDirectory = flag.StringP("output-directory", "o", defaultOutputDirectory, "the directory to output generated files to")
-
-	gen = flag.StringP("generator", "g", defaultGenerator, "the generator to use")
-
-	javaPackage = flag.StringP("java-package", "j", defaultJavaPackage, "the root package to generate classes in")
-
-	force = flag.BoolP("force", "f", false, "force overwrite of existing files")
-
-	validGenerators = map[string]struct{}{
-		"immutables": struct{}{},
-	}
+	parsedPackages []loader.Package
 )
 
-func main() {
-	flag.Parse()
+const pluginBinaryPrefix = "kmg-"
 
-	logger := log.Log
-
-	logger.SetHandler(log15.CallerFileHandler(log15.StderrHandler))
-
-	logLvl := defaultLogLevel
-	if *verbose {
-		logLvl = log15.LvlDebug
-	}
-	logger.SetHandler(log15.LvlFilterHandler(logLvl, log.Log.GetHandler()))
-
-	if _, ok := validGenerators[*gen]; !ok {
-		logger.Crit("unknown generator", "generator", *gen)
-		os.Exit(1)
-	}
-
-	cfg := generator.Config{
-		OutputDirectory: *outputDirectory,
-		JavaRootPackage: *javaPackage,
-		Logger:          logger,
-		Force:           *force,
-	}
-
-	g, err := generator.New(*gen, cfg)
-	if err != nil {
-		logger.Crit("failed to create generator", "error", err)
-		os.Exit(1)
-	}
-
-	ldr := loader.New(*packages, logger)
-	loadedPackages, err := ldr.Load()
-	if err != nil {
-		logger.Crit("failed to load packages", "error", err, "stack", err.Error())
-		os.Exit(1)
-	}
-
-	if err := g.Generate(loadedPackages); err != nil {
-		logger.Crit("failed to generate output", "error", err)
-		os.Exit(1)
-	}
+func init() {
+	packages = RootCmd.PersistentFlags().StringSliceP("package", "p", defaultAPIPackages, "packages to generate JSON schema for")
+	verbose = RootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	outputDirectory = RootCmd.Flags().StringP("output-directory", "o", "", "the directory to output generated files to")
+	force = RootCmd.Flags().BoolP("force", "f", false, "force overwrite of existing files")
 }

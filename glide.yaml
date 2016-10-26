@@ -1,4 +1,4 @@
-package: github.com/fabric8io/kubernetes-model
+package: github.com/jimmidyson/kube-client-gen
 import:
 - package: github.com/inconshreveable/log15
 - package: github.com/pkg/errors
@@ -7,48 +7,8 @@ import:
 - package: golang.org/x/tools
   subpackages:
   - go/loader
-- package: github.com/openshift/origin
-  version: v1.3.0
-  subpackages:
-  - pkg/authorization/api/v1
-  - pkg/build/api/v1
-  - pkg/deploy/api/v1
-  - pkg/image/api/v1
-  - pkg/oauth/api/v1
-  - pkg/project/api/v1
-  - pkg/quota/api/v1
-  - pkg/route/api/v1
-  - pkg/sdn/api/v1
-  - pkg/security/api/v1
-  - pkg/template/api/v1
-  - pkg/user/api/v1
-- package: k8s.io/kubernetes
-  version: 52492b4bff99ef3b8ca617d385a3ff0612f9402d
-  repo: https://github.com/openshift/kubernetes.git
-  vcs: git
-  subpackages:
-  - pkg/api/unversioned
-  - pkg/api/v1
-  - pkg/apis/apps/v1alpha1
-  - pkg/apis/authentication/v1beta1
-  - pkg/apis/autoscaling/v1
-  - pkg/apis/batch/v1
-  - pkg/apis/batch/v2alpha1
-  - pkg/apis/extensions/v1beta1
-  - pkg/apis/policy/v1alpha1
-  - pkg/apis/rbac/v1alpha1
-  - third_party/golang/reflect
-- package: github.com/emicklei/go-restful
-  version: 673225fcad91a5833672dcbc596b61735fbc4914
-- package: github.com/docker/distribution
-  version: 559433598c7be9d30d6cfc5cad5b5dfdb686725c
-  repo: https://github.com/openshift/docker-distribution.git
-  vcs: git
-- package: github.com/golang/glog
-  version: 335da9dda11408a34b64344f82e9c03779b71673
-  repo: https://github.com/openshift/glog.git
-  vcs: git
 - package: github.com/jstemmer/go-junit-report
+- package: github.com/spf13/cobra
 testImport:
 - package: github.com/onsi/ginkgo
   subpackages:

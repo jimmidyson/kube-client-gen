@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	. "github.com/fabric8io/kubernetes-model/pkg/astutils"
+	. "github.com/jimmidyson/kube-client-gen/pkg/loader/astutils"
 )
 
 var sortedCommentGroup = []*ast.CommentGroup{

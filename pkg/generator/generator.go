@@ -2,30 +2,16 @@ package generator
 
 import (
 	"github.com/inconshreveable/log15"
-	"github.com/pkg/errors"
 
-	"github.com/fabric8io/kubernetes-model/pkg/loader"
+	"github.com/jimmidyson/kube-client-gen/pkg/loader"
 )
 
-type Generator interface {
-	Generate([]loader.Package) error
-}
-
 type Config struct {
-	OutputDirectory string
-	JavaRootPackage string
 	Logger          log15.Logger
 	Force           bool
+	OutputDirectory string
 }
 
-func New(k string, c Config) (Generator, error) {
-	c.Logger.Debug("creating generator", "type", k)
-	switch k {
-	case "immutables":
-		return &immutablesGenerator{
-			config: c,
-		}, nil
-	default:
-		return nil, errors.Errorf("unknown generator type %s", k)
-	}
+type Generator interface {
+	Generate(Config, []loader.Package) error
 }
