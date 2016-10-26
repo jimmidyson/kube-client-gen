@@ -13,5 +13,5 @@ type Config struct {
 }
 
 type Generator interface {
-	Generate(Config, []loader.Package) error
+	Generate([]loader.Package) error
 }

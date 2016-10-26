@@ -6,6 +6,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 
+	"github.com/jimmidyson/kube-client-gen/pkg/generator"
 	"github.com/jimmidyson/kube-client-gen/pkg/loader"
 	"github.com/jimmidyson/kube-client-gen/pkg/log"
 )
@@ -54,6 +55,12 @@ var (
 			}
 			logger.SetHandler(log15.LvlFilterHandler(logLvl, log.Log.GetHandler()))
 
+			config = generator.Config{
+				Logger:          logger,
+				Force:           *force,
+				OutputDirectory: *outputDirectory,
+			}
+
 			ldr := loader.New(*packages, logger)
 			pkgs, err := ldr.Load()
 			if err != nil {
@@ -70,8 +77,8 @@ var (
 	force           *bool
 
 	defaultLogLevel = log15.LvlInfo
-
-	parsedPackages []loader.Package
+	config          generator.Config
+	parsedPackages  []loader.Package
 )
 
 const pluginBinaryPrefix = "kmg-"
