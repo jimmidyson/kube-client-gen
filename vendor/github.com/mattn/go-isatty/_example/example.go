@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/mattn/go-isatty"
+	"os"
 )
 
 func main() {
