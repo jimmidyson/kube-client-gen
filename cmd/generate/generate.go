@@ -81,11 +81,9 @@ var (
 	parsedPackages  []loader.Package
 )
 
-const pluginBinaryPrefix = "kmg-"
-
 func init() {
 	packages = RootCmd.PersistentFlags().StringSliceP("package", "p", defaultAPIPackages, "packages to generate JSON schema for")
 	verbose = RootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
-	outputDirectory = RootCmd.Flags().StringP("output-directory", "o", "", "the directory to output generated files to")
-	force = RootCmd.Flags().BoolP("force", "f", false, "force overwrite of existing files")
+	outputDirectory = RootCmd.PersistentFlags().StringP("output-directory", "o", "", "the directory to output generated files to")
+	force = RootCmd.PersistentFlags().BoolP("force", "f", false, "force overwrite of existing files")
 }

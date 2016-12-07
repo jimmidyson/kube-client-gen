@@ -133,6 +133,7 @@ func (l *ASTLoader) Load() ([]Package, error) {
 							for _, tagValue := range split[1:] {
 								if tagValue == "omitempty" {
 									required = false
+									break
 								}
 							}
 							break
@@ -148,19 +149,29 @@ func (l *ASTLoader) Load() ([]Package, error) {
 					fldDoc := ""
 					if j < astStructType.Fields.NumFields() {
 						fldDoc = strings.TrimSpace(astStructType.Fields.List[j].Doc.Text())
+						docLines := strings.Split(fldDoc, "\n")
+						for i := len(docLines) - 1; i >= 0; i-- {
+							if strings.HasPrefix(strings.TrimSpace(docLines[i]), "+optional") {
+								required = false
+							}
+						}
 					}
 
+					typeName := fld.Type().String()
+					if idx := strings.Index(typeName, "vendor/"); idx > -1 {
+						typeName = typeName[idx+len("vendor/"):]
+					}
 					f := Field{
 						Name:         fld.Name(),
 						Doc:          fldDoc,
 						Type:         fld.Type(),
-						TypeName:     fld.Type().String(),
+						TypeName:     typeName,
 						Anonymous:    fld.Anonymous(),
 						JSONProperty: jsonProperty,
 						JSONRequired: required,
 					}
 					structFields = append(structFields, f)
-					l.logger.Debug("added struct field defition", "struct", t.Name.Name, "field", f)
+					l.logger.Debug("added struct field definition", "struct", t.Name.Name, "field", f)
 				}
 
 				if len(structFields) == 0 {

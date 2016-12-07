@@ -39,7 +39,7 @@ gopath: $(GOPATH)/src/$(ORG)
 $(GOPATH)/src/$(ORG):
 	mkdir -p $(GOPATH)/src/$(ORG)
 	ln -s -f $(shell pwd) $(GOPATH)/src/$(ORG)
-	ln -s -f $(shell pwd)/vendor/{k8s.io,golang.org,gopkg.in,google.golang.org} $(GOPATH)/src
+	ln -s -f $(shell pwd)/vendor/golang.org $(GOPATH)/src
 	ln -s -f $(shell pwd)/vendor/github.com/* $(GOPATH)/src/github.com/
 
 .PHONY: clean

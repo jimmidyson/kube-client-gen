@@ -8,46 +8,48 @@ import (
 	"github.com/pkg/errors"
 )
 
-func javaPackage(rootPackage, pkgPath string) string {
-	// lastDotIndex := strings.LastIndex(pkgPath, ".")
-	// lastSlashIndex := strings.LastIndex(pkgPath, "/")
-	// if 0 < lastDotIndex && lastSlashIndex < lastDotIndex {
-	// 	pkgPath = pkgPath[:lastDotIndex+1] + "Abstract" + pkgPath[lastDotIndex+1:]
-	// }
+func javaPackage(rootPackage, openshiftRootPackage, pkgPath string) (string, string, string) {
+	pkgPath = strings.TrimPrefix(pkgPath, "github.com/openshift/origin/vendor/")
 
-	var javaSubPackage string
 	if strings.HasPrefix(pkgPath, "github.com/openshift/origin/pkg/") {
-		goApiPackage := strings.TrimPrefix(pkgPath, "github.com/openshift/origin/pkg/")
-		javaSubPackage = "openshift.types." + strings.Replace(strings.Replace(goApiPackage, "/api", "", -1), "/", ".", -1)
-	} else {
-		goApiPackage := strings.TrimPrefix(pkgPath, "k8s.io/kubernetes/pkg/")
-		javaSubPackage = "kubernetes.types." + strings.Replace(goApiPackage, "/", ".", -1)
+		goAPIPackage := strings.TrimPrefix(pkgPath, "github.com/openshift/origin/pkg/")
+		strippedPackage := strings.Replace(goAPIPackage, "/api", "", -1)
+		splitPkg := strings.Split(strippedPackage, "/")
+		return openshiftRootPackage + "." + strings.Replace(strippedPackage, "/", ".", -1), strings.Join([]string{splitPkg[len(splitPkg)-2], splitPkg[len(splitPkg)-1]}, "-"), "openshift"
 	}
-
-	return rootPackage + "." + javaSubPackage
+	if strings.HasPrefix(pkgPath, "k8s.io/kubernetes") {
+		goAPIPackage := strings.TrimPrefix(pkgPath, "k8s.io/kubernetes/pkg/")
+		splitPkg := strings.Split(goAPIPackage, "/")
+		if len(splitPkg) >= 2 {
+			return rootPackage + "." + strings.Replace(goAPIPackage, "/", ".", -1), strings.Join([]string{splitPkg[len(splitPkg)-2], splitPkg[len(splitPkg)-1]}, "-"), "kubernetes"
+		}
+	}
+	return "", "", ""
 }
 
-func javaPackageToDir(rootDir, javaPackage string) string {
+func javaPackageToDir(rootDir, moduleName, javaPackage string) string {
 	return filepath.Join(
 		rootDir,
+		moduleName, "src", "main", "java",
 		strings.Replace(javaPackage, ".", string(filepath.Separator), -1),
 	)
 }
 
-func javaType(rootPackage string, typ types.Type, typeName string) (string, error) {
+func javaType(rootPackage, openshiftRootPackage string, typ types.Type, typeName string) (string, error) {
+	typeName = strings.TrimPrefix(typeName, "github.com/openshift/origin/vendor/")
 	switch fldT := typ.Underlying().(type) {
 	case *types.Slice:
-		elemType, err := javaType(rootPackage, fldT.Elem(), fldT.Elem().String())
+		elemType, err := javaType(rootPackage, openshiftRootPackage, fldT.Elem(), fldT.Elem().String())
 		if err != nil {
 			return "", err
 		}
 		return "java.util.List<" + elemType + ">", nil
 	case *types.Map:
-		keyType, err := javaType(rootPackage, fldT.Key(), fldT.Key().String())
+		keyType, err := javaType(rootPackage, openshiftRootPackage, fldT.Key(), fldT.Key().String())
 		if err != nil {
 			return "", err
 		}
-		elemType, err := javaType(rootPackage, fldT.Elem(), fldT.Elem().String())
+		elemType, err := javaType(rootPackage, openshiftRootPackage, fldT.Elem(), fldT.Elem().String())
 		if err != nil {
 			return "", err
 		}
@@ -55,14 +57,17 @@ func javaType(rootPackage string, typ types.Type, typeName string) (string, erro
 	case *types.Struct:
 		switch typeName {
 		case "k8s.io/kubernetes/pkg/runtime.RawExtension":
-			return "io.fabric8.kubernetes.types.api.HasMetadata", nil
+			return "io.fabric8.kubernetes.types.api.v1.HasMetadata", nil
 		case "k8s.io/kubernetes/pkg/api/unversioned.Time":
 			return "java.util.Date", nil
+		case "k8s.io/kubernetes/pkg/util/intstr.IntOrString":
+			return "io.fabric8.kubernetes.types.common.IntOrString", nil
 		default:
-			return javaPackage(rootPackage, typeName), nil
+			javaPkg, _, _ := javaPackage(rootPackage, openshiftRootPackage, typeName)
+			return javaPkg, nil
 		}
 	case *types.Pointer:
-		return javaType(rootPackage, fldT.Elem(), fldT.Elem().String())
+		return javaType(rootPackage, openshiftRootPackage, fldT.Elem(), fldT.Elem().String())
 	case *types.Basic:
 		return javaTypeBasic(fldT.Kind()), nil
 	default:
