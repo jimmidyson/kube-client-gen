@@ -29,6 +29,8 @@ const immutableTemplateText = `package {{.JavaPackage}};
 @com.fasterxml.jackson.annotation.JsonPropertyOrder({
 {{range $i, $f := .Fields}}{{if eq 0 $i}} {{end}}{{if lt 0 (len $f.Name)}} "{{$f.Name}}"{{if isNotLastField $i $fieldsLen}},{{end}}{{end}}{{end}}
 }){{end}}
+@com.fasterxml.jackson.databind.annotation.JsonSerialize(as = Immutable{{.ClassName}}.class)
+@com.fasterxml.jackson.databind.annotation.JsonDeserialize(as = Immutable{{.ClassName}}.class)
 public abstract class {{.ClassName}} {{if .HasMetadata}}implements io.fabric8.kubernetes.types.api.v1.HasMetadata {{end}}{{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
 {{if .Doc}}
 {{comment .Doc "  "}}{{end}}{{if eq .Name ""}}
@@ -42,11 +44,13 @@ public abstract class {{.ClassName}} {{if .HasMetadata}}implements io.fabric8.ku
     return new {{.Type}}.Builder().kind("{{$className}}").apiVersion("{{apiVersion $goPackage}}").build();
   }
 
+	@com.fasterxml.jackson.annotation.JsonIgnore
   @org.immutables.value.Value.Derived
   public String getApiVersion() {
     return getTypeMeta().getApiVersion();
   }
 
+	@com.fasterxml.jackson.annotation.JsonIgnore
   @org.immutables.value.Value.Derived
   public String getKind() {
     return getTypeMeta().getKind();
