@@ -31,14 +31,14 @@ const immutableTemplateText = `package {{.JavaPackage}};
 }){{end}}
 @com.fasterxml.jackson.databind.annotation.JsonSerialize(as = Immutable{{.ClassName}}.class)
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(as = Immutable{{.ClassName}}.class)
-public abstract class {{.ClassName}} {{if .HasMetadata}}implements io.fabric8.kubernetes.types.api.v1.HasMetadata {{end}}{{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
+public abstract class {{.ClassName}} implements {{if .HasMetadata}}io.fabric8.kubernetes.types.api.v1.HasMetadata, {{end}}io.fabric8.kubernetes.types.common.WithValidation {{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
 {{if .Doc}}
 {{comment .Doc "  "}}{{end}}{{if eq .Name ""}}
   @com.fasterxml.jackson.annotation.JsonUnwrapped{{else}}
   @com.fasterxml.jackson.annotation.JsonProperty("{{.Name}}"){{end}}{{if typeName .Type | ne "TypeMeta"}}{{if eq .Type "java.util.Date"}}
   @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = io.fabric8.kubernetes.types.common.RFC3339DateDeserializer.class)
   @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = io.fabric8.kubernetes.types.common.RFC3339DateDeserializer.RFC3339_FORMAT, timezone="UTC"){{end}}
-  {{$optional := isOptional $className (typeName .Type) .Optional $fieldsLen}}public abstract {{if $optional}}java.util.Optional<{{end}}{{.Type}}{{if $optional}}>{{end}} {{if eq .Type "Boolean"}}is{{else}}get{{end}}{{if .Name}}{{upperFirst .Name | sanitize}}{{else}}{{typeName .Type | upperFirst | sanitize}}{{end}}();{{else}}
+  {{$optional := isOptional $className (typeName .Type) .Optional $fieldsLen}}{{validationConstraints $className .Name $optional}}public abstract {{if $optional}}java.util.Optional<{{end}}{{.Type}}{{if $optional}}>{{end}} {{if eq .Type "Boolean"}}is{{else}}get{{end}}{{if .Name}}{{upperFirst .Name | sanitize}}{{else}}{{typeName .Type | upperFirst | sanitize}}{{end}}();{{else}}
   @org.immutables.value.Value.Derived
   public {{.Type}} get{{typeName .Type}}() {
     return new {{.Type}}.Builder().kind("{{$className}}").apiVersion("{{apiVersion $goPackage}}").build();
@@ -142,6 +142,35 @@ var immutableTemplate = template.Must(template.New("immutable").
 			},
 			"isOptional": func(className, fieldType string, optional bool, numFields int) bool {
 				return className != "TypeMeta" && fieldType != "ObjectMeta" && optional && numFields > 1
+			},
+			"validationConstraints": func(className, fieldName string, optional bool) string {
+				switch className {
+				case "ObjectMeta":
+					switch fieldName {
+					case "namespace":
+						return `@javax.validation.Valid
+	@javax.validation.constraints.Size(max = 253)
+	@javax.validation.constraints.Pattern(regexp = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$")
+  `
+					}
+				case "EnvVar":
+					switch fieldName {
+					case "name":
+						return `@javax.validation.Valid
+	@javax.validation.constraints.Pattern(regexp = "^[A-Za-z_][A-Za-z0-9_]*$")
+  `
+					}
+				case "Container", "Volume", "ContainePort", "ContainerStatus", "ServicePort", "EndpointPort":
+					switch fieldName {
+					case "name":
+						return `@javax.validation.Valid
+	@javax.validation.constraints.Size(max = 63)
+	@javax.validation.constraints.Pattern(regexp = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+  `
+					}
+				}
+				return `@javax.validation.Valid
+	`
 			},
 		},
 	).
