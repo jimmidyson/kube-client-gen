@@ -31,7 +31,7 @@ const immutableTemplateText = `package {{.JavaPackage}};
 }){{end}}
 @com.fasterxml.jackson.databind.annotation.JsonSerialize(as = Immutable{{.ClassName}}.class)
 @com.fasterxml.jackson.databind.annotation.JsonDeserialize(as = Immutable{{.ClassName}}.class)
-public abstract class {{.ClassName}} implements {{if .HasMetadata}}io.fabric8.kubernetes.types.api.v1.HasMetadata, {{end}}io.fabric8.kubernetes.types.common.WithValidation {{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
+public abstract class {{.ClassName}}{{if .HasMetadata}} implements io.fabric8.kubernetes.types.api.v1.HasMetadata{{end}} {{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
 {{if .Doc}}
 {{comment .Doc "  "}}{{end}}{{if eq .Name ""}}
   @com.fasterxml.jackson.annotation.JsonUnwrapped{{else}}
@@ -160,7 +160,7 @@ var immutableTemplate = template.Must(template.New("immutable").
 	@javax.validation.constraints.Pattern(regexp = "^[A-Za-z_][A-Za-z0-9_]*$")
   `
 					}
-				case "Container", "Volume", "ContainePort", "ContainerStatus", "ServicePort", "EndpointPort":
+				case "Container", "Volume", "ContainerPort", "ContainerStatus", "ServicePort", "EndpointPort":
 					switch fieldName {
 					case "name":
 						return `@javax.validation.Valid
