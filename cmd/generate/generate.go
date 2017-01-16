@@ -13,19 +13,25 @@ import (
 
 var (
 	defaultAPIPackages = []string{
-		"k8s.io/kubernetes/pkg/api/unversioned",
 		"k8s.io/kubernetes/pkg/api/resource",
+		"k8s.io/kubernetes/pkg/api/unversioned",
 
 		"k8s.io/kubernetes/pkg/api/v1",
 
+		"k8s.io/kubernetes/federation/apis/federation/v1beta1",
 		"k8s.io/kubernetes/pkg/apis/apps/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/authentication/v1beta1",
+		"k8s.io/kubernetes/pkg/apis/authorization/v1beta1",
 		"k8s.io/kubernetes/pkg/apis/autoscaling/v1",
 		"k8s.io/kubernetes/pkg/apis/batch/v1",
 		"k8s.io/kubernetes/pkg/apis/batch/v2alpha1",
+		"k8s.io/kubernetes/pkg/apis/certificates/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
+		"k8s.io/kubernetes/pkg/apis/imagepolicy/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/policy/v1alpha1",
 		"k8s.io/kubernetes/pkg/apis/rbac/v1alpha1",
+		"k8s.io/kubernetes/pkg/apis/storage/v1beta1",
+		"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime",
 
 		"github.com/openshift/origin/pkg/authorization/api/v1",
 		"github.com/openshift/origin/pkg/build/api/v1",

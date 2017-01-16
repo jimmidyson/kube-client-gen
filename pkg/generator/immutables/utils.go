@@ -18,7 +18,7 @@ func javaPackage(rootPackage, openshiftRootPackage, pkgPath string) (string, str
 		return openshiftRootPackage + "." + strings.Replace(strippedPackage, "/", ".", -1), strings.Join([]string{splitPkg[len(splitPkg)-2], splitPkg[len(splitPkg)-1]}, "-"), "openshift"
 	}
 	if strings.HasPrefix(pkgPath, "k8s.io/kubernetes") {
-		goAPIPackage := strings.TrimPrefix(pkgPath, "k8s.io/kubernetes/pkg/")
+		goAPIPackage := strings.TrimPrefix(strings.TrimPrefix(pkgPath, "k8s.io/kubernetes/pkg/"), "k8s.io/kubernetes/federation/")
 		splitPkg := strings.Split(goAPIPackage, "/")
 		if len(splitPkg) >= 2 {
 			return rootPackage + "." + strings.Replace(goAPIPackage, "/", ".", -1), strings.Join([]string{splitPkg[len(splitPkg)-2], splitPkg[len(splitPkg)-1]}, "-"), "kubernetes"
