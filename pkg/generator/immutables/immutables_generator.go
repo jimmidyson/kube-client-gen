@@ -30,7 +30,8 @@ const immutableTemplateText = `package {{.JavaPackage}};
 {{range $i, $f := .Fields}}{{if eq 0 $i}} {{end}}{{if lt 0 (len $f.Name)}} "{{$f.Name}}"{{if isNotLastField $i $fieldsLen}},{{end}}{{end}}{{end}}
 }){{end}}
 @com.fasterxml.jackson.databind.annotation.JsonSerialize(as = Immutable{{.ClassName}}.class)
-@com.fasterxml.jackson.databind.annotation.JsonDeserialize(as = Immutable{{.ClassName}}.class)
+@com.fasterxml.jackson.databind.annotation.JsonDeserialize(as = Immutable{{.ClassName}}.class){{if .GenerateClient}}
+@io.fabric8.kubernetes.types.common.GenerateClient(namespaced = {{.Namespaced}}){{end}}
 public abstract class {{.ClassName}}{{if .HasMetadata}} implements io.fabric8.kubernetes.types.api.v1.HasMetadata{{end}} {{"{"}}{{$className := .ClassName}}{{$goPackage := .GoPackage}}{{range .Fields}}
 {{if .Doc}}
 {{comment .Doc "  "}}{{end}}{{if eq .Name ""}}
@@ -44,19 +45,19 @@ public abstract class {{.ClassName}}{{if .HasMetadata}} implements io.fabric8.ku
     return new {{.Type}}.Builder().kind("{{$className}}").apiVersion("{{apiVersion $goPackage}}").build();
   }
 
-	@com.fasterxml.jackson.annotation.JsonIgnore
+  @com.fasterxml.jackson.annotation.JsonIgnore
   @org.immutables.value.Value.Derived
   public String getApiVersion() {
     return getTypeMeta().getApiVersion();
   }
 
-	@com.fasterxml.jackson.annotation.JsonIgnore
+  @com.fasterxml.jackson.annotation.JsonIgnore
   @org.immutables.value.Value.Derived
   public String getKind() {
     return getTypeMeta().getKind();
   }{{end}}{{end}}
 
-	public static class Builder extends Immutable{{.ClassName}}.Builder {}
+  public static class Builder extends Immutable{{.ClassName}}.Builder {}
 
 }
 `
@@ -207,6 +208,7 @@ func (g *immutablesGenerator) Generate(pkgs []loader.Package) error {
 		return errors.Wrap(err, "failed to parse parent POM")
 	}
 
+	var allDependencies []string
 	for _, pkg := range pkgs {
 		dependencies := []string{"common"}
 
@@ -267,6 +269,12 @@ func (g *immutablesGenerator) Generate(pkgs []loader.Package) error {
 		if err := g.writeModulePOM(filepath.Join(g.config.OutputDirectory, moduleName), p.GroupID, moduleName, p.ArtifactID, p.Version, dependencies); err != nil {
 			return errors.Wrap(err, "failed to write module POM file")
 		}
+
+		allDependencies = append(allDependencies, moduleName)
+	}
+
+	if err := g.writeModulePOM(filepath.Join(g.config.OutputDirectory, "all"), p.GroupID, "all", p.ArtifactID, p.Version, allDependencies); err != nil {
+		return errors.Wrap(err, "failed to write module POM file")
 	}
 
 	return nil
@@ -280,12 +288,14 @@ type field struct {
 }
 
 type data struct {
-	JavaPackage string
-	GoPackage   string
-	ClassName   string
-	HasMetadata bool
-	Doc         string
-	Fields      []field
+	JavaPackage    string
+	GoPackage      string
+	ClassName      string
+	HasMetadata    bool
+	Doc            string
+	GenerateClient bool
+	Namespaced     bool
+	Fields         []field
 }
 
 func (g *immutablesGenerator) write(pkg string, typ loader.Type, f io.WriteCloser) error {
@@ -315,12 +325,14 @@ func (g *immutablesGenerator) write(pkg string, typ loader.Type, f io.WriteClose
 	}
 
 	return immutableTemplate.Execute(f, data{
-		JavaPackage: pkg,
-		GoPackage:   typ.Package,
-		ClassName:   typ.Name,
-		HasMetadata: hasMetadata && hasTypemeta,
-		Doc:         typ.Doc,
-		Fields:      fields,
+		JavaPackage:    pkg,
+		GoPackage:      typ.Package,
+		ClassName:      typ.Name,
+		HasMetadata:    hasMetadata && hasTypemeta,
+		Doc:            typ.Doc,
+		GenerateClient: typ.GenerateClient,
+		Namespaced:     typ.Namespaced,
+		Fields:         fields,
 	})
 }
 
@@ -340,6 +352,11 @@ func (g *immutablesGenerator) writeModulePOM(moduleDir, groupID, artifactID, par
 		ParentArtifactID string
 		Version          string
 		Dependencies     []string
+	}
+
+	err := os.Mkdir(moduleDir, 0755)
+	if err != nil && !os.IsExist(err) {
+		return errors.Wrap(err, "failed to create module dir")
 	}
 
 	f, err := os.Create(filepath.Join(moduleDir, "pom.xml"))
